@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panorama Object Analyzer</title>
+<style>
+/* ── reset ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f1117;color:#e2e8f0;min-height:100vh;font-size:14px}
+
+/* ══ TOP BAR ══ */
+.topbar{
+  background:#1a1f2e;border-bottom:3px solid #cc0000;
+  padding:0 32px;height:52px;
+  display:flex;align-items:center;gap:16px;
+  position:sticky;top:0;z-index:100;
+}
+.tb-brand{font-weight:700;font-size:15px;color:#fff;letter-spacing:.02em}
+.tb-brand span{color:#cc0000}
+.tb-div{width:1px;height:26px;background:#2d3448}
+.tb-title{font-size:13px;color:#94a3b8}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.tb-badge{
+  background:#1e3a2e;border:1px solid #22543d;color:#48bb78;
+  font-size:11px;font-weight:700;padding:3px 10px;border-radius:3px;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+
+/* ══ PAGE ══ */
+.page{max-width:1480px;margin:0 auto;padding:24px 28px}
+
+/* ══ STEP VISIBILITY ══ */
+.step{display:none}
+.step.active{display:block}
+
+/* ══ UPLOAD CARD ══ */
+.upload-card{
+  background:#1a1f2e;border:2px dashed #2d3448;border-radius:8px;
+  overflow:hidden;transition:border-color .2s,background .2s;
+  max-width:600px;margin:0 auto;
+}
+.upload-card.hover{border-color:#cc0000;background:#1e1a2a}
+.uc-head{
+  background:#151929;border-bottom:1px solid #2d3448;
+  padding:11px 18px;display:flex;align-items:center;gap:10px;
+}
+.uc-pill{
+  font-size:10px;font-weight:700;padding:2px 9px;border-radius:3px;
+  background:#2d1a1a;color:#cc0000;border:1px solid #4a1a1a;
+  text-transform:uppercase;letter-spacing:.06em;
+}
+.uc-label{font-size:12px;font-weight:600;color:#94a3b8}
+.uc-body{padding:36px 28px;text-align:center}
+.uc-icon{font-size:40px;opacity:.45;margin-bottom:14px}
+.uc-h{font-size:17px;font-weight:700;color:#fff;margin-bottom:8px}
+.uc-p{font-size:13px;color:#64748b;margin-bottom:20px}
+.uc-ftag{
+  display:inline-block;background:#0f1117;border:1px solid #2d3448;
+  border-radius:3px;padding:3px 10px;font-size:11px;
+  color:#f0a500;font-family:'Courier New',monospace;margin-bottom:22px;
+}
+.file-label{
+  display:inline-block;padding:10px 28px;
+  background:#1e3a5f;border:1px solid #2563eb;border-radius:5px;
+  color:#93c5fd;font-size:13px;font-weight:600;cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.file-label:hover{background:#1e40af;border-color:#3b82f6;color:#bfdbfe}
+#file-input{position:absolute;left:-9999px;top:-9999px;opacity:0;width:1px;height:1px}
+
+/* ══ READY CARD ══ */
+.ready-card{
+  background:#1a1f2e;border:1px solid #2d3448;border-left:4px solid #f0a500;
+  border-radius:8px;padding:36px 32px;text-align:center;
+  max-width:600px;margin:0 auto;
+}
+.ready-icon{font-size:40px;margin-bottom:14px}
+.ready-name{
+  font-family:'Courier New',monospace;font-size:17px;font-weight:700;
+  color:#fff;margin-bottom:6px;word-break:break-all;
+}
+.ready-meta{font-size:12px;color:#64748b;margin-bottom:28px}
+.btn-analyze{
+  padding:13px 44px;background:#cc0000;border:none;border-radius:5px;
+  color:#fff;font-size:15px;font-weight:700;cursor:pointer;
+  transition:background .15s,transform .1s;
+  box-shadow:0 0 24px rgba(204,0,0,.35);letter-spacing:.3px;
+}
+.btn-analyze:hover{background:#aa0000}
+.btn-analyze:active{transform:scale(.97)}
+.btn-change{
+  margin-left:12px;padding:13px 20px;background:none;
+  border:1px solid #2d3448;border-radius:5px;color:#64748b;
+  font-size:13px;cursor:pointer;transition:all .15s;
+}
+.btn-change:hover{color:#e2e8f0;border-color:#64748b}
+.err-card{
+  margin-top:16px;padding:10px 16px;
+  background:rgba(204,0,0,.12);border:1px solid rgba(204,0,0,.3);
+  border-radius:5px;color:#f87171;font-size:13px;display:none;
+}
+
+/* ══ LOADING ══ */
+#step-loading{text-align:center;padding:80px 40px}
+.spinner{
+  width:36px;height:36px;border:3px solid #2d3448;border-top-color:#cc0000;
+  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 18px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading-msg{color:#64748b;font-size:14px}
+
+/* ══ RESULTS ══ */
+.res-topbar{
+  display:flex;align-items:center;gap:12px;margin-bottom:20px;
+}
+.file-banner{
+  flex:1;background:#1a1f2e;border:1px solid #2d3448;border-left:3px solid #22c55e;
+  border-radius:5px;padding:10px 16px;font-size:12px;color:#64748b;
+  font-family:'Courier New',monospace;
+}
+.file-banner strong{color:#e2e8f0}
+.btn-new{
+  padding:8px 16px;background:none;border:1px solid #2d3448;
+  border-radius:5px;color:#64748b;font-size:12px;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.btn-new:hover{color:#e2e8f0;border-color:#64748b}
+
+/* ══ STAT CARDS ══ */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:22px}
+.stat{
+  background:#1a1f2e;border:1px solid #2d3448;border-radius:7px;
+  padding:14px 16px;position:relative;overflow:hidden;border-top:3px solid var(--sc,#f0a500);
+}
+.stat .sl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:10px;font-weight:600}
+.stat .svals{display:flex;gap:14px}
+.stat .sn{font-family:'Courier New',monospace;font-size:23px;font-weight:700;color:#fff;line-height:1}
+.stat .ss{font-size:10px;color:#64748b;margin-top:3px}
+.s-total{--sc:#f0a500}
+.s-addr {--sc:#3b82f6}
+.s-ag   {--sc:#8b5cf6}
+.s-svc  {--sc:#22c55e}
+.s-sg   {--sc:#f59e0b}
+.s-app  {--sc:#ef4444}
+.n-red  {color:#ef4444!important}
+.n-gold {color:#f0a500!important}
+
+/* ══ CONTROLS BOX ══ */
+.ctrl-box{background:#1a1f2e;border:1px solid #2d3448;border-radius:8px;overflow:hidden}
+
+/* tab bar */
+.tab-bar{display:flex;background:#151929;border-bottom:1px solid #2d3448}
+.tab-btn{
+  padding:11px 22px;background:none;border:none;
+  border-bottom:2px solid transparent;
+  color:#64748b;font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'Segoe UI',system-ui,sans-serif;
+  transition:color .15s,border-color .15s;margin-bottom:-1px;
+}
+.tab-btn.on{color:#fff;border-bottom-color:#cc0000}
+.tab-btn:hover:not(.on){color:#94a3b8}
+
+/* filter chips */
+.filter-row{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  padding:10px 14px;border-bottom:1px solid #2d3448;
+}
+.chip{
+  padding:4px 12px;background:#0f1117;border:1px solid #2d3448;
+  border-radius:20px;color:#64748b;font-size:12px;cursor:pointer;
+  transition:all .15s;display:flex;align-items:center;gap:5px;
+}
+.chip .cn{
+  background:#2d3448;border-radius:10px;padding:1px 6px;
+  font-size:10px;font-family:'Courier New',monospace;color:#94a3b8;
+}
+.chip.on{background:#7f1d1d;border-color:#cc0000;color:#fca5a5;font-weight:700}
+.chip.on .cn{background:rgba(0,0,0,.3);color:#fca5a5}
+
+/* export row */
+.export-row{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+  padding:9px 14px;border-bottom:1px solid #2d3448;
+}
+.exp-label{font-size:12px;color:#64748b}
+.srch{margin-left:auto;position:relative}
+.srch input{
+  background:#0f1117;border:1px solid #2d3448;border-radius:5px;
+  padding:6px 10px 6px 28px;color:#e2e8f0;font-size:12px;
+  font-family:'Courier New',monospace;width:210px;outline:none;
+  transition:border-color .15s;
+}
+.srch input:focus{border-color:#cc0000}
+.srch .si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#64748b;font-size:12px}
+.ebtn{
+  padding:5px 13px;background:#151929;border:1px solid #2d3448;
+  border-radius:5px;color:#94a3b8;font-size:12px;cursor:pointer;
+  transition:all .15s;font-family:'Segoe UI',system-ui,sans-serif;
+}
+.ebtn:hover{border-color:#cc0000;color:#fca5a5}
+.ebtn.pri{background:#7f1d1d;border-color:#cc0000;color:#fca5a5;font-weight:700}
+.ebtn.pri:hover{background:#991b1b}
+
+/* table */
+.tbl-wrap{overflow:auto;max-height:520px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{
+  background:#151929;padding:9px 14px;text-align:left;
+  font-size:10px;text-transform:uppercase;letter-spacing:.8px;
+  color:#475569;font-weight:700;position:sticky;top:0;z-index:2;
+  border-bottom:1px solid #2d3448;white-space:nowrap;
+}
+tbody tr{border-bottom:1px solid #1e2536;transition:background .1s}
+tbody tr:hover{background:#151929}
+tbody td{padding:8px 14px;vertical-align:middle}
+.tc-name{color:#e2e8f0;font-weight:600;font-family:'Courier New',monospace;font-size:12px}
+.tc-loc {font-family:'Courier New',monospace;font-size:11px}
+.tc-val {font-family:'Courier New',monospace;font-size:11px;color:#64748b;max-width:320px;word-break:break-all}
+.tc-id  {font-family:'Courier New',monospace;font-size:11px;color:#8b5cf6;text-align:center}
+
+/* tags */
+.tag{
+  display:inline-block;padding:2px 7px;border-radius:3px;
+  font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+}
+.t-unused{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.t-dup   {background:rgba(240,165,0,.15);color:#fbbf24;border:1px solid rgba(240,165,0,.3)}
+.t-addr  {background:rgba(59,130,246,.12);color:#93c5fd;border:1px solid rgba(59,130,246,.28)}
+.t-ag    {background:rgba(139,92,246,.12);color:#c4b5fd;border:1px solid rgba(139,92,246,.28)}
+.t-svc   {background:rgba(34,197,94,.12);color:#86efac;border:1px solid rgba(34,197,94,.28)}
+.t-sg    {background:rgba(245,158,11,.12);color:#fcd34d;border:1px solid rgba(245,158,11,.28)}
+.t-app   {background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.28)}
+.t-shared{background:rgba(34,197,94,.14);color:#86efac;border:1px solid rgba(34,197,94,.3);font-size:9px}
+.t-dg   {background:rgba(59,130,246,.1);color:#93c5fd;border:1px solid rgba(59,130,246,.25);font-size:9px}
+
+.loc-cell{display:flex;flex-direction:column;gap:3px}
+.loc-name{font-size:11px;font-family:'Courier New',monospace}
+.empty{padding:52px;text-align:center;color:#475569;font-size:13px}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#2d3448;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══ -->
+<div class="topbar">
+  <div class="tb-brand">Palo Alto <span>Networks</span></div>
+  <div class="tb-div"></div>
+  <div class="tb-title">Panorama Object Analyzer</div>
+  <div class="tb-right">
+    <div class="tb-badge">Offline · No Internet</div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- ══ STEP 1 : UPLOAD ══ -->
+  <div id="step-upload" class="step active">
+    <div class="upload-card" id="drop-zone">
+      <div class="uc-head">
+        <div class="uc-pill">Config XML</div>
+        <div class="uc-label">Panorama Running Config Export</div>
+      </div>
+      <div class="uc-body">
+        <div class="uc-icon">📂</div>
+        <div class="uc-h">Upload Panorama XML Config</div>
+        <p class="uc-p">Drag &amp; drop your Panorama running-config XML here,<br>or click the button below to browse</p>
+        <div class="uc-ftag">.xml — Panorama device config export</div><br>
+        <label class="file-label" for="file-input">📁 &nbsp; Choose XML File</label>
+        <input type="file" id="file-input" accept=".xml">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 2 : FILE STAGED ══ -->
+  <div id="step-ready" class="step">
+    <div class="ready-card">
+      <div class="ready-icon">📄</div>
+      <div class="ready-name" id="rname"></div>
+      <div class="ready-meta" id="rmeta"></div>
+      <button class="btn-analyze" id="btn-analyze">▶ &nbsp;Analyze Now</button>
+      <button class="btn-change" id="btn-change">✕ Change File</button>
+      <div class="err-card" id="err-card"></div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 3 : LOADING ══ -->
+  <div id="step-loading" class="step">
+    <div class="spinner"></div>
+    <div id="loading-msg">Reading file…</div>
+  </div>
+
+  <!-- ══ STEP 4 : RESULTS ══ -->
+  <div id="step-results" class="step">
+    <div class="res-topbar">
+      <div class="file-banner" id="file-banner"></div>
+      <button class="btn-new" id="btn-new">↩ New File</button>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stats-row" id="stats-row"></div>
+
+    <!-- Main controls -->
+    <div class="ctrl-box">
+      <!-- Tabs: All Objects first, then Unused, then Duplicate -->
+      <div class="tab-bar" id="tab-bar">
+        <button class="tab-btn on"  data-tab="all">📋 All Objects</button>
+        <button class="tab-btn"     data-tab="unused">🚫 Unused Objects</button>
+        <button class="tab-btn"     data-tab="dup">♊ Duplicate Objects</button>
+      </div>
+
+      <!-- Category filter chips -->
+      <div class="filter-row" id="filter-row"></div>
+
+      <!-- Export + search -->
+      <div class="export-row">
+        <span class="exp-label">Export CSV :</span>
+        <button class="ebtn" id="exp-view">⬇ Current View</button>
+        <button class="ebtn" id="exp-unused">⬇ All Unused</button>
+        <button class="ebtn" id="exp-dup">⬇ All Duplicates</button>
+        <button class="ebtn pri" id="exp-all">⬇ Full Report</button>
+        <div class="srch">
+          <span class="si">🔍</span>
+          <input type="text" id="search-box" placeholder="Search name, value, location…">
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="tbl-wrap">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+var App = {
+  file:   null,
+  data:   null,
+  unused: [],
+  dups:   [],
+  tab:    'all',
+  filter: 'all',
+};
+
+// ══════════════════════════════════════════════
+// STEP CONTROL
+// ══════════════════════════════════════════════
+function showStep(id) {
+  ['step-upload','step-ready','step-loading','step-results'].forEach(function(s) {
+    document.getElementById(s).classList.toggle('active', s === id);
+  });
+}
+
+// ══════════════════════════════════════════════
+// STAGE FILE  (step 1 → step 2)
+// ══════════════════════════════════════════════
+function stageFile(file) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.xml')) {
+    setErr('Please select an .xml file.'); return;
+  }
+  App.file = file;
+  document.getElementById('rname').textContent = file.name;
+  document.getElementById('rmeta').textContent =
+    (file.size / 1024).toFixed(1) + ' KB  ·  Press "Analyze Now" to detect unused & duplicate objects';
+  setErr('');
+  showStep('step-ready');
+}
+
+function setErr(msg) {
+  var el = document.getElementById('err-card');
+  el.textContent = msg ? ('⚠  ' + msg) : '';
+  el.style.display = msg ? 'block' : 'none';
+}
+
+// ══════════════════════════════════════════════
+// RUN ANALYSIS  (step 2 → 3 → 4)
+// ══════════════════════════════════════════════
+function runAnalysis() {
+  if (!App.file) return;
+  showStep('step-loading');
+  document.getElementById('loading-msg').textContent = 'Reading file…';
+
+  var reader = new FileReader();
+  reader.onerror = function() { showStep('step-ready'); setErr('Could not read file.'); };
+  reader.onload  = function(ev) {
+    try {
+      document.getElementById('loading-msg').textContent = 'Parsing XML…';
+      var parsed   = parseConfig(ev.target.result);
+      App.data     = parsed.data;
+      var analysis = detectIssues(parsed.data, parsed.usedNames);
+      App.unused   = analysis.unused;
+      App.dups     = analysis.dups;
+      App.tab      = 'all';
+      App.filter   = 'all';
+      renderResults();
+      showStep('step-results');
+    } catch(e) {
+      showStep('step-ready');
+      setErr('XML error: ' + e.message);
+    }
+  };
+  setTimeout(function() { reader.readAsText(App.file); }, 80);
+}
+
+function resetApp() {
+  App.file = null;
+  document.getElementById('file-input').value = '';
+  showStep('step-upload');
+}
+
+// ══════════════════════════════════════════════
+// XML PARSING
+// ══════════════════════════════════════════════
+function parseConfig(xmlText) {
+  var parser = new DOMParser();
+  var doc    = parser.parseFromString(xmlText, 'application/xml');
+  var perr   = doc.querySelector('parsererror');
+  if (perr) throw new Error(perr.textContent.slice(0,160));
+
+  var data = { addresses:[], addressGroups:[], services:[], serviceGroups:[], applications:[] };
+  var used = new Set();
+
+  function mems(el) {
+    return Array.from(el.querySelectorAll(':scope > member')).map(function(m){ return m.textContent.trim(); });
+  }
+
+  function collectObjects(container, locName, locType) {
+    // Addresses
+    Array.from(container.querySelectorAll(':scope > address > entry')).forEach(function(e) {
+      var name=e.getAttribute('name'), val='', atype='';
+      var ipn=e.querySelector('ip-netmask'), ipr=e.querySelector('ip-range'), fq=e.querySelector('fqdn');
+      if(ipn){val=ipn.textContent.trim();atype='ip-netmask';}
+      else if(ipr){val=ipr.textContent.trim();atype='ip-range';}
+      else if(fq){val=fq.textContent.trim();atype='fqdn';}
+      data.addresses.push({name:name,loc:locName,locType:locType,type:'address',addrType:atype,value:val,cat:'Addresses'});
+    });
+    // Address Groups
+    Array.from(container.querySelectorAll(':scope > address-group > entry')).forEach(function(e) {
+      var name=e.getAttribute('name'), ms=[], val='';
+      var st=e.querySelector('static'), dy=e.querySelector('dynamic > filter');
+      if(st){ms=mems(st);val='static:['+ms.slice().sort().join(', ')+']';}
+      else if(dy){val='dynamic:'+dy.textContent.trim();}
+      data.addressGroups.push({name:name,loc:locName,locType:locType,type:'address-group',value:val,members:ms,cat:'Address Groups'});
+    });
+    // Services
+    Array.from(container.querySelectorAll(':scope > service > entry')).forEach(function(e) {
+      var name=e.getAttribute('name');
+      var tcp=e.querySelector('protocol > tcp > port'), udp=e.querySelector('protocol > udp > port');
+      var val=tcp?'TCP:'+tcp.textContent.trim():udp?'UDP:'+udp.textContent.trim():'';
+      data.services.push({name:name,loc:locName,locType:locType,type:'service',value:val,cat:'Services'});
+    });
+    // Service Groups
+    Array.from(container.querySelectorAll(':scope > service-group > entry')).forEach(function(e) {
+      var name=e.getAttribute('name'), ms=mems(e);
+      var val='members:['+ms.slice().sort().join(', ')+']';
+      data.serviceGroups.push({name:name,loc:locName,locType:locType,type:'service-group',value:val,members:ms,cat:'Service Groups'});
+    });
+    // Custom Applications
+    Array.from(container.querySelectorAll(':scope > application > entry')).forEach(function(e) {
+      var name=e.getAttribute('name');
+      var ports=Array.from(e.querySelectorAll('default > port > member')).map(function(m){return m.textContent.trim();});
+      var catEl=e.querySelector('category'), subEl=e.querySelector('subcategory');
+      var val=(catEl?catEl.textContent.trim()+'/'+(subEl?subEl.textContent.trim():''):'')+
+              (ports.length?' ports:['+ports.join(',')+']':'');
+      data.applications.push({name:name,loc:locName,locType:locType,type:'application',value:val||'(custom app)',cat:'Applications'});
+    });
+  }
+
+  function collectRules(container) {
+    var sels=[
+      'pre-rulebase security rules entry','post-rulebase security rules entry',
+      'pre-rulebase nat rules entry','post-rulebase nat rules entry',
+      'pre-rulebase pbf rules entry','post-rulebase pbf rules entry',
+      'pre-rulebase decryption rules entry','post-rulebase decryption rules entry',
+    ];
+    sels.forEach(function(sel){
+      Array.from(container.querySelectorAll(sel)).forEach(function(rule){
+        Array.from(rule.querySelectorAll('source > member,destination > member,src-ip > member,dst-ip > member'))
+          .forEach(function(m){used.add(m.textContent.trim());});
+        Array.from(rule.querySelectorAll('application > member')).forEach(function(m){used.add(m.textContent.trim());});
+        Array.from(rule.querySelectorAll('service > member')).forEach(function(m){used.add(m.textContent.trim());});
+      });
+    });
+  }
+
+  // Shared (two known export paths)
+  [doc.querySelector('config > shared'), doc.querySelector('devices > entry > shared')]
+    .forEach(function(s){if(s) collectObjects(s,'Shared','shared');});
+
+  // Device groups
+  Array.from(doc.querySelectorAll('devices > entry > device-group > entry')).forEach(function(dg){
+    var name=dg.getAttribute('name');
+    collectObjects(dg,name,'device-group');
+    collectRules(dg);
+  });
+
+  // Group members count as used
+  data.addressGroups.forEach(function(ag){ag.members.forEach(function(m){used.add(m);});});
+  data.serviceGroups.forEach(function(sg){sg.members.forEach(function(m){used.add(m);});});
+
+  return {data:data, usedNames:used};
+}
+
+// ══════════════════════════════════════════════
+// DETECT ISSUES
+// ══════════════════════════════════════════════
+var RESERVED = new Set(['any','application-default','none','unknown','multicast']);
+
+function allObjs() {
+  var d=App.data;
+  return [].concat(d.addresses,d.addressGroups,d.services,d.serviceGroups,d.applications);
+}
+
+function detectIssues(data, usedNames) {
+  var all=[].concat(data.addresses,data.addressGroups,data.services,data.serviceGroups,data.applications);
+
+  var unused=all.filter(function(o){
+    return !RESERVED.has(o.name) && !usedNames.has(o.name);
+  }).map(function(o){return Object.assign({},o,{status:'unused'});});
+
+  var buckets={}, gid=0, dups=[];
+  all.forEach(function(o){
+    if(!o.value) return;
+    var key=o.type+'||'+o.value;
+    if(!buckets[key]) buckets[key]=[];
+    buckets[key].push(o);
+  });
+  Object.keys(buckets).forEach(function(key){
+    var grp=buckets[key];
+    if(grp.length>1){
+      gid++;
+      grp.forEach(function(o){
+        dups.push(Object.assign({},o,{status:'duplicate',dupGroup:gid,dupCount:grp.length}));
+      });
+    }
+  });
+
+  return {unused:unused, dups:dups};
+}
+
+// ══════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════
+var CATS=['Addresses','Address Groups','Services','Service Groups','Applications'];
+var CAT_CLS={'Addresses':'s-addr','Address Groups':'s-ag','Services':'s-svc','Service Groups':'s-sg','Applications':'s-app'};
+var TYPE_TAGS={
+  'address':       '<span class="tag t-addr">Address</span>',
+  'address-group': '<span class="tag t-ag">Addr Group</span>',
+  'service':       '<span class="tag t-svc">Service</span>',
+  'service-group': '<span class="tag t-sg">Svc Group</span>',
+  'application':   '<span class="tag t-app">Application</span>',
+};
+
+function renderResults() {
+  var all=allObjs(), f=App.file;
+  document.getElementById('file-banner').innerHTML=
+    '&#10003;&nbsp;<strong>'+esc(f.name)+'</strong>&nbsp;·&nbsp;'+
+    (f.size/1024).toFixed(1)+' KB&nbsp;·&nbsp;<strong>'+all.length+'</strong> objects parsed';
+
+  // Stat cards
+  var dupGrpTotal=new Set(App.dups.map(function(d){return d.dupGroup;})).size;
+  var sh='';
+  sh+=mkStat('s-total','Total Objects',all.length,App.unused.length,dupGrpTotal);
+  CATS.forEach(function(cat){
+    var tot=all.filter(function(o){return o.cat===cat;}).length;
+    var uc=App.unused.filter(function(o){return o.cat===cat;}).length;
+    var dc=new Set(App.dups.filter(function(o){return o.cat===cat;}).map(function(o){return o.dupGroup;})).size;
+    sh+=mkStat(CAT_CLS[cat],cat,tot,uc,dc);
+  });
+  document.getElementById('stats-row').innerHTML=sh;
+
+  wireTabs();
+  refreshFilters();
+  refreshTable();
+}
+
+function mkStat(cls,label,total,unused,dups) {
+  return '<div class="stat '+cls+'">'+
+    '<div class="sl">'+esc(label)+'</div>'+
+    '<div class="svals">'+
+      '<div><div class="sn">'+total+'</div><div class="ss">total</div></div>'+
+      '<div><div class="sn n-red">'+unused+'</div><div class="ss">unused</div></div>'+
+      '<div><div class="sn n-gold">'+dups+'</div><div class="ss">dup grps</div></div>'+
+    '</div></div>';
+}
+
+function wireTabs() {
+  Array.from(document.querySelectorAll('#tab-bar .tab-btn')).forEach(function(btn){
+    btn.classList.toggle('on', btn.dataset.tab === App.tab);
+    btn.onclick=function(){
+      App.tab=btn.dataset.tab; App.filter='all';
+      wireTabs(); refreshFilters(); refreshTable();
+    };
+  });
+}
+
+function srcRows() {
+  if(App.tab==='unused') return App.unused;
+  if(App.tab==='dup')    return App.dups;
+  return allObjs();
+}
+
+function refreshFilters() {
+  var src=srcRows(), cats=['all'].concat(CATS), html='';
+  cats.forEach(function(cat){
+    var cnt=cat==='all'?src.length:src.filter(function(o){return o.cat===cat;}).length;
+    var on=App.filter===cat?'on':'';
+    html+='<button class="chip '+on+'" data-cat="'+cat+'">'+(cat==='all'?'All Objects':cat)+
+          ' <span class="cn">'+cnt+'</span></button>';
+  });
+  document.getElementById('filter-row').innerHTML=html;
+  Array.from(document.querySelectorAll('#filter-row .chip')).forEach(function(btn){
+    btn.onclick=function(){App.filter=btn.dataset.cat; refreshFilters(); refreshTable();};
+  });
+}
+
+function filteredRows() {
+  var rows=srcRows();
+  if(App.filter!=='all') rows=rows.filter(function(o){return o.cat===App.filter;});
+  var q=(document.getElementById('search-box').value||'').toLowerCase().trim();
+  if(q) rows=rows.filter(function(r){
+    return (r.name||'').toLowerCase().includes(q)||
+           (r.value||'').toLowerCase().includes(q)||
+           (r.loc||'').toLowerCase().includes(q);
+  });
+  return rows;
+}
+
+function refreshTable() {
+  var rows=filteredRows(), isDup=App.tab==='dup', isAll=App.tab==='all';
+
+  var h='<tr>';
+  if(isDup) h+='<th>Dup #</th>';
+  h+='<th>Object Name</th><th>Type</th><th>Scope</th><th>Location</th><th>Value / Definition</th>';
+  if(!isAll) h+='<th>Status</th>';
+  if(isDup) h+='<th>Count</th>';
+  h+='</tr>';
+  document.getElementById('thead').innerHTML=h;
+
+  if(!rows.length){
+    document.getElementById('tbody').innerHTML=
+      '<tr><td colspan="9"><div class="empty">No objects match the current filter.</div></td></tr>';
+    return;
+  }
+
+  var html='';
+  rows.forEach(function(r){
+    var shared=r.locType==='shared';
+    var scopeBadge=shared?'<span class="tag t-shared">Shared</span>':'<span class="tag t-dg">Device Group</span>';
+    var locName=shared
+      ?'<span class="loc-name" style="color:#86efac">— global scope</span>'
+      :'<span class="loc-name">'+esc(r.loc)+'</span>';
+
+    html+='<tr>';
+    if(isDup) html+='<td class="tc-id">#'+r.dupGroup+'</td>';
+    html+='<td class="tc-name">'+esc(r.name)+'</td>';
+    html+='<td>'+(TYPE_TAGS[r.type]||esc(r.type))+'</td>';
+    html+='<td><div class="loc-cell">'+scopeBadge+'</div></td>';
+    html+='<td class="tc-loc"><div class="loc-cell">'+locName+'</div></td>';
+    html+='<td class="tc-val">'+esc(r.value||'—')+'</td>';
+    if(!isAll) html+='<td><span class="tag '+(r.status==='unused'?'t-unused':'t-dup')+'">'+r.status+'</span></td>';
+    if(isDup) html+='<td class="tc-id">'+r.dupCount+'</td>';
+    html+='</tr>';
+  });
+  document.getElementById('tbody').innerHTML=html;
+}
+
+function esc(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ══════════════════════════════════════════════
+// CSV EXPORT
+// ══════════════════════════════════════════════
+function exportCSV(mode) {
+  var rows, suffix;
+  var hdrs=['Object Name','Type','Category','Scope','Location','Value / Definition','Status','Dup Group','Dup Count'];
+  function toRow(o){
+    return [o.name,o.type,o.cat,o.locType||'',o.loc||'',o.value||'',o.status||'',o.dupGroup||'',o.dupCount||''];
+  }
+  if(mode==='unused'){rows=App.unused;suffix='unused';}
+  else if(mode==='dup'){rows=App.dups;suffix='duplicates';}
+  else if(mode==='all'){rows=allObjs();suffix='all-objects';}
+  else{rows=filteredRows();suffix='current-view';}
+
+  var lines=[hdrs].concat(rows.map(toRow)).map(function(cols){
+    return cols.map(function(c){return '"'+String(c||'').replace(/"/g,'""')+'"';}).join(',');
+  });
+  var csv='\uFEFF'+lines.join('\r\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download='panorama-'+suffix+'-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+// ══════════════════════════════════════════════
+// BOOT — wire everything after DOM ready
+// ══════════════════════════════════════════════
+window.addEventListener('load', function() {
+
+  // File picker via label
+  document.getElementById('file-input').addEventListener('change', function(e) {
+    var f=e.target.files && e.target.files[0]; if(f) stageFile(f);
+  });
+
+  // Drag & drop on the upload card
+  var dz=document.getElementById('drop-zone');
+  dz.addEventListener('dragover', function(e){e.preventDefault(); dz.classList.add('hover');});
+  dz.addEventListener('dragleave',function(e){if(!dz.contains(e.relatedTarget)) dz.classList.remove('hover');});
+  dz.addEventListener('drop',     function(e){
+    e.preventDefault(); dz.classList.remove('hover');
+    var f=e.dataTransfer.files && e.dataTransfer.files[0]; if(f) stageFile(f);
+  });
+
+  // Analyze / change / new
+  document.getElementById('btn-analyze').addEventListener('click', runAnalysis);
+  document.getElementById('btn-change').addEventListener('click',  resetApp);
+  document.getElementById('btn-new').addEventListener('click',     resetApp);
+
+  // Search
+  document.getElementById('search-box').addEventListener('input', refreshTable);
+
+  // Export buttons
+  document.getElementById('exp-view').addEventListener('click',   function(){exportCSV('view');});
+  document.getElementById('exp-unused').addEventListener('click', function(){exportCSV('unused');});
+  document.getElementById('exp-dup').addEventListener('click',    function(){exportCSV('dup');});
+  document.getElementById('exp-all').addEventListener('click',    function(){exportCSV('all');});
+
+});
+</script>
+</body>
+</html>
